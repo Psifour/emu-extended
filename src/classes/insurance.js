@@ -9,20 +9,21 @@ class InsuranceServer {
     /* remove insurance from an item */
     remove(pmcData, body) {
         let toDo = [body];
-        
+
         //Find the item and all of it's relates
         if (toDo[0] === undefined || toDo[0] === null || toDo[0] === "undefined") {
             logger.logError("item id is not valid");
             return;
         }
-    
+
         let ids_toremove = itm_hf.findAndReturnChildren(pmcData, toDo[0]); // get all ids related to this item, +including this item itself
 
-        for (let i in ids_toremove) { // remove one by one all related items and itself
-            for (let a in pmcData.Inventory.items) {	// find correct item by id and delete it
-                if (pmcData.Inventory.items[a]._id === ids_toremove[i]) {
+        // TODO: Remove redundant loop and redundant array self-reference
+        for (let itemToRemove in ids_toremove) { // remove one by one all related items and itself
+            for (let playerItem in pmcData.Inventory.items) {	// find correct item by id and delete it
+                if (pmcData.Inventory.items[playerItem]._id === ids_toremove[itemToRemove]) {
                     for (let insurance in pmcData.InsuredItems) {
-                        if (pmcData.InsuredItems[insurance].itemId == ids_toremove[i]) {
+                        if (pmcData.InsuredItems[insurance].itemId === ids_toremove[itemToRemove]) {
                             pmcData.InsuredItems.splice(insurance, 1);
                         }
                     }
@@ -37,24 +38,24 @@ class InsuranceServer {
     }
 
     /* adds gear to store */
-    addGearToSend(pmcData, insuredItem, actualItem, sessionID) {
+    addGearToSend(pmcData, insuredItem, actualItem, sessionID, isInsuranceFraud) {
         // Don't process insurance for melee weapon or secure container.
         if (actualItem.slotId === "Scabbard" || actualItem.slotId === "SecuredContainer") {
             return;
         }
-	
-	// Check if the insured item is INSIDE a secure container.
-	// We don't process insurance for these items
-	// TODO: Move this to helper and generify it to allow checking the entire parental tree
-	for(let item of pmcData.Inventory.items) {
-		if(item.slotId === "SecuredContainer") {
-			if(actualItem.parentId === item._id) {
-				return;
-			} else {
-				break;
-			}
-		}
-	}
+
+        // Check if the insured item is INSIDE a secure container.
+        // We don't process insurance for these items
+        // TODO: Move this to helper and generify it to allow checking the entire parental tree
+        for(let item of pmcData.Inventory.items) {
+            if(item.slotId === "SecuredContainer") {
+                if(actualItem.parentId === item._id) {
+                    return;
+                } else {
+                    break;
+                }
+            }
+        }
 
         // Mark root-level items for later.
         if (actualItem.parentId === pmcData.Inventory.equipment) {
@@ -62,7 +63,13 @@ class InsuranceServer {
         }
 
         this.insured[sessionID][insuredItem.tid] = this.insured[sessionID][insuredItem.tid] || [];
-        this.insured[sessionID][insuredItem.tid].push(actualItem);
+
+        let config = gameplayConfig.trading;
+        let insureChance = (isInsuranceFraud ? config.insureDropReturnChance : config.insureDeadReturnChance);
+        if (utility.getRandomInt(0, 99) < insureChance) {
+            this.insured[sessionID][insuredItem.tid].push(actualItem);
+        }
+
         this.remove(pmcData, insuredItem.itemId);
     }
 
@@ -82,7 +89,7 @@ class InsuranceServer {
                 // Check if we brought it out of the raid
                 if (!offRaidGearHash[insuredItem.itemId]) {
                     // We didn't bring this item out! We must've lost it.
-                    this.addGearToSend(pmcData, insuredItem, preRaidGearHash[insuredItem.itemId], sessionID);
+                    this.addGearToSend(pmcData, insuredItem, preRaidGearHash[insuredItem.itemId], sessionID, true);
                 }
             }
         }
@@ -93,7 +100,7 @@ class InsuranceServer {
         for (let insuredItem of pmcData.InsuredItems) {
             for (let item of pmcData.Inventory.items) {
                 if (insuredItem.itemId === item._id) {
-                    this.addGearToSend(pmcData, insuredItem, item, sessionID);
+                    this.addGearToSend(pmcData, insuredItem, item, sessionID, false);
                     break;
                 }
             }
@@ -109,9 +116,9 @@ class InsuranceServer {
                 "templateId": dialogueTemplates.insuranceStart[utility.getRandomInt(0, dialogueTemplates.insuranceStart.length - 1)],
                 "type": dialogue_f.getMessageTypeValue("npcTrader")
             };
-    
+
             dialogue_f.dialogueServer.addDialogueMessage(traderId, messageContent, sessionID);
-        
+
             messageContent = {
                 "templateId": dialogueTemplates.insuranceFound[utility.getRandomInt(0, dialogueTemplates.insuranceFound.length - 1)],
                 "type": dialogue_f.getMessageTypeValue("insuranceReturn"),
@@ -122,7 +129,7 @@ class InsuranceServer {
                     "location": pmcData.Info.EntryPoint
                 }
             };
-    
+
             events.scheduledEventHandler.addToSchedule({
                 "type": "insuranceReturn",
                 "sessionId": sessionID,
@@ -139,29 +146,27 @@ class InsuranceServer {
     }
 
     processReturn(event) {
-        // Inject a little bit of a surprise by failing the insurance from time to time ;)
-        if (utility.getRandomInt(0, 99) >= gameplayConfig.trading.insureReturnChance) {
+        if(event.data.items.length < 1) {
             let insuranceFailedTemplates = json.parse(json.read(db.dialogues[event.data.traderId])).insuranceFailed;
             event.data.messageContent.templateId = insuranceFailedTemplates[utility.getRandomInt(0, insuranceFailedTemplates.length)];
-            event.data.items = [];
         }
-    
+
         dialogue_f.dialogueServer.addDialogueMessage(event.data.traderId, event.data.messageContent, event.sessionId, event.data.items);
     }
 }
 
 // TODO: Move to helper functions
 function getItemPrice(_tpl) {
-	let price = 0;
-	if(_tpl in db.templates.items) {
-		let template = json.parse(json.read(db.templates.items[_tpl]));
-		price = template.Price;
-	} else {
-		let item = json.parse(json.read(db.items[_tpl]));
-		price = item._props.CreditsPrice;
-	}
-	
-	return price;
+    let price;
+    if(_tpl in db.templates.items) {
+        let template = json.parse(json.read(db.templates.items[_tpl]));
+        price = template.Price;
+    } else {
+        let item = json.parse(json.read(db.items[_tpl]));
+        price = item._props.CreditsPrice;
+    }
+
+    return price;
 }
 
 /* calculates insurance cost */

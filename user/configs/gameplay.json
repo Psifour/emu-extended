@@ -1,4 +1,7 @@
 {
+    "account": {
+        "defaultEdition": "Standard"
+    },
     "autosave": {
         "saveOnReceive": true,
         "saveOnExit": false,

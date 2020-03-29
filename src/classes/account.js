@@ -1,9 +1,9 @@
 "use strict";
 
 /**
-* AccountServer class maintains list of accounts in memory. All account information should be 
-* loaded during server init.
-*/
+ * AccountServer class maintains list of accounts in memory. All account information should be
+ * loaded during server init.
+ */
 class AccountServer {
     constructor() {
         this.accounts = {};
@@ -38,26 +38,50 @@ class AccountServer {
     }
 
     login(info) {
+        // Adds support for older launchers
+        if(info.hasOwnProperty("token")) {
+            let buff = Buffer.from(data.token, 'base64');
+            let text = buff.toString('ascii');
+            info = json.parse(text);
+            info.isLegacyLauncher = true;
+        } else {
+            info.isLegacyLauncher = false;
+        }
+
         for (let accountId in this.accounts) {
             let account = this.accounts[accountId];
 
-            if (info.email === account.email && info.password === account.password) {
-				return accountId;
+            if (info.email === account.email) {
+                if(info.password === account.password) {
+                    return accountId;
+                } else {
+                    return "";
+                }
             }
         }
 
-        return "";
+        // Automatic account creation for legacy launchers
+        if(info.isLegacyLauncher) {
+            return this.register(info);
+        } else {
+            return "";
+        }
     }
 
     register(info) {
         for (let accountId in this.accounts) {
             if (info.email === this.accounts[accountId].email) {
-				return accountId;
+                return accountId;
             }
         }
-        
+
         let accountId = utility.generateNewAccountId();
 
+        let output = "";
+        if(!info.hasOwnProperty("edition")) {
+            info.edition = gameplayConfig.account.defaultEdition;
+            output = accountId;
+        }
         this.accounts[accountId] = {
             "id": accountId,
             "nickname": "",
@@ -65,14 +89,14 @@ class AccountServer {
             "password": info.password,
             "wipe": true,
             "edition": info.edition
-        }
-        
+        };
+
         this.saveToDisk();
-        return "";
+        return output;
     }
-    
+
     remove(info) {
-        let accountId = this.login(info);  
+        let accountId = this.login(info);
 
         if (accountId !== "") {
             delete this.accounts[accountId];
@@ -95,7 +119,7 @@ class AccountServer {
     }
 
     changePassword(info) {
-        let accountId = this.login(info);  
+        let accountId = this.login(info);
 
         if (accountId !== "") {
             this.accounts[accountId].password = info.change;
@@ -106,7 +130,7 @@ class AccountServer {
     }
 
     wipe(info) {
-        let accountId = this.login(info);  
+        let accountId = this.login(info);
 
         if (accountId !== "") {
             this.accounts[accountId].edition = info.edition;

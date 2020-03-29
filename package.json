@@ -1,37 +1,24 @@
 {
-  "name": "JustEmuTarkov-Server",
-  "description": "Escape From Tarkov server emulator",
-  "version": "0.8.0",
-  "main": "scripts/main.js",
+  "name": "emu-extended",
+  "description": "Extension project based on EmuTarkov",
+  "version": "0.12.4",
+  "main": "core/main.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/justemutarkov/EmuTarkov-Server.git"
+    "url": "https://github.com/Psifour/emu-extended.git"
   },
-  "keywords": [
-    "jet",
-    "jet-server",
-    "justemutarkov",
-    "emutarkov",
-    "emutarkov-server",
-    "emulator",
-    "server-emulator"
-  ],
-  "author": "JustEmuTarkov Team",
+  "keywords": [],
+  "author": "Psifour",
   "contributors": [
-    "TheMaoci",
-    "InNoHurryToCode",
-    "BALIST0N",
-    "Macmillanic",
-    "Mr RUSS",
-    "Windel",
-    "Йуpасзка"
+    "JustEmuTarkov Team"
   ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/justemutarkov/EmuTarkov-Server/issues"
   },
   "scripts": {
-    "test": "mocha dev/src/test.js --exit"
+    "test": "mocha dev/src/test.js --exit",
+    "start": "node core/main.js"
   },
   "homepage": "https://justemutarkov.github.io",
   "dependencies": {

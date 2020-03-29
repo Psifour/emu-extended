@@ -40,7 +40,7 @@ class AccountServer {
     login(info) {
         // Adds support for older launchers
         if(info.hasOwnProperty("token")) {
-            let buff = Buffer.from(data.token, 'base64');
+            let buff = Buffer.from(info.token, 'base64');
             let text = buff.toString('ascii');
             info = json.parse(text);
             info.isLegacyLauncher = true;

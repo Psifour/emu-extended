@@ -1,17 +1,37 @@
 "use strict";
 
+/**
+ * Returns db data related to hideout recipes
+ *
+ * @returns {string} Json object containing recipes
+ */
 function getRecipes(url, info, sessionID) {
     return json.read(db.user.cache.hideout_production);
 }
 
+/**
+ * Returns db data related to hideout settings
+ *
+ * @returns {string} Json object containing default hideout settings
+ */
 function getSettings(url, info, sessionID) {
     return json.read(db.hideout.settings);
 }
 
+/**
+ * Returns db data related to hideout areas
+ *
+ * @returns {string} Json object containing hideout area details
+ */
 function getAreas(url, info, sessionID) {
     return json.read(db.user.cache.hideout_areas);
 }
 
+/**
+ * Returns db data related to scavcase recipes
+ *
+ * @returns {string} Json object containg scavcase recipes
+ */
 function getScavDatacaseRecipes(url, info, sessionID) {
     return json.read(db.user.cache.hideout_scavcase);
 }

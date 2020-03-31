@@ -1,9 +1,19 @@
 "use strict";
 
+/**
+ * Returns all customization options the server has initialized.
+ *
+ * @returns {string} Stringified json containing an array of all customization options
+ */
 function getCustomization(url, info, sessionID) {
     return json.stringify(customization_f.getCustomization());
 }
 
+/**
+ * Returns the storage.json json object from the users profile directory.
+ *
+ * @returns {string} Json object containing all customizations the user owns
+ */
 function getCustomizationStorage(url, info, sessionID) {
     return json.read(customization_f.getPath(sessionID));
 }

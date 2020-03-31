@@ -1,5 +1,12 @@
 "use strict";
 
+// TODO: Complete documentation
+
+/**
+ * Returns a json string with an empty array assigned to property 'data'
+ *
+ * @returns {string}
+ */
 function nullArrayResponse(url, info, sessionID) {
     return '{"err":0, "errmsg":null, "data":[]}';
 }
